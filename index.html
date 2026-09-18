@@ -1,30 +1,836 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FreeCar — 자동차 구독 이용권 플랫폼</title>
+  <meta name="description" content="Vue 3 · Kotlin/Spring Boot · Spring Batch · Kafka · Kubernetes · Docker 기반 자동차 구독 플랫폼" />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <!-- marked.js -->
+  <script src="https://cdn.jsdelivr.net/npm/marked@9/marked.min.js"></script>
+  <!-- highlight.js -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-light.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <!-- mermaid.js -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+
+  <style>
+    /* ────────────────── DESIGN TOKENS ────────────────── */
+    :root {
+      --white:       #ffffff;
+      --off-white:   #f5f5f7;
+      --light-gray:  #e8e8ed;
+      --mid-gray:    #d2d2d7;
+      --text-dark:   #1d1d1f;
+      --text-body:   #3a3a3c;
+      --text-muted:  #6e6e73;
+      --text-light:  #a1a1a6;
+      --accent:      #0071e3;
+      --accent-dark: #0058b0;
+      --accent-light:#e8f1fd;
+      --danger:      #ff3b30;
+      --success:     #30d158;
+      --warning:     #ff9f0a;
+
+      --radius-sm:   8px;
+      --radius-md:   16px;
+      --radius-lg:   24px;
+      --radius-xl:   32px;
+
+      --shadow-sm:   0 2px 8px rgba(0,0,0,0.06);
+      --shadow-md:   0 4px 24px rgba(0,0,0,0.08);
+      --shadow-lg:   0 12px 48px rgba(0,0,0,0.12);
+      --shadow-xl:   0 24px 80px rgba(0,0,0,0.14);
+
+      --sidebar-w:   260px;
+      --nav-h:       64px;
+      --transition:  0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* ────────────────── RESET ────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; font-size: 16px; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--white);
+      color: var(--text-dark);
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ────────────────── SCROLL PROGRESS ────────────────── */
+    #progress-bar {
+      position: fixed;
+      top: 0; left: 0;
+      height: 2px;
+      background: var(--accent);
+      z-index: 9999;
+      transition: width 0.1s linear;
+    }
+
+    /* ────────────────── TOP NAV ────────────────── */
+    #topnav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: var(--nav-h);
+      background: rgba(255,255,255,0.88);
+      backdrop-filter: saturate(180%) blur(20px);
+      -webkit-backdrop-filter: saturate(180%) blur(20px);
+      border-bottom: 1px solid rgba(0,0,0,0.08);
+      z-index: 900;
+      display: flex;
+      align-items: center;
+      padding: 0 40px;
+      gap: 12px;
+    }
+
+    .nav-logo {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: var(--text-dark);
+      letter-spacing: -0.4px;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .nav-logo-icon {
+      font-size: 1.3rem;
+    }
+
+    .nav-divider { width: 1px; height: 20px; background: var(--mid-gray); margin: 0 8px; }
+
+    .nav-subtitle {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    .nav-spacer { flex: 1; }
+
+    .nav-badge {
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 4px 12px;
+      border-radius: 999px;
+      background: var(--accent-light);
+      color: var(--accent);
+    }
+
+    /* ────────────────── HERO ────────────────── */
+    #hero {
+      margin-top: var(--nav-h);
+      background: var(--text-dark);
+      color: var(--white);
+      min-height: 92vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 80px 40px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* 배경 그리드 패턴 */
+    #hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+      background-size: 60px 60px;
+      pointer-events: none;
+    }
+
+    /* 빛 번짐 */
+    #hero::after {
+      content: '';
+      position: absolute;
+      top: -20%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 800px;
+      height: 600px;
+      background: radial-gradient(ellipse, rgba(0,113,227,0.15) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-eyebrow {
+      position: relative;
+      z-index: 1;
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.5);
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .hero-eyebrow::before,
+    .hero-eyebrow::after {
+      content: '';
+      flex: 1;
+      max-width: 60px;
+      height: 1px;
+      background: rgba(255,255,255,0.2);
+    }
+
+    .hero-title {
+      position: relative;
+      z-index: 1;
+      font-size: clamp(3rem, 8vw, 7rem);
+      font-weight: 900;
+      line-height: 1.0;
+      letter-spacing: -0.03em;
+      color: var(--white);
+      margin-bottom: 24px;
+    }
+
+    .hero-title .accent-word {
+      background: linear-gradient(135deg, #60a5fa, #a78bfa, #34d399);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-desc {
+      position: relative;
+      z-index: 1;
+      font-size: clamp(1rem, 2.5vw, 1.3rem);
+      font-weight: 300;
+      color: rgba(255,255,255,0.65);
+      max-width: 640px;
+      margin: 0 auto 48px;
+      line-height: 1.6;
+    }
+
+    .hero-stack {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 56px;
+    }
+
+    .stack-chip {
+      font-size: 0.78rem;
+      font-weight: 500;
+      padding: 6px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.15);
+      color: rgba(255,255,255,0.75);
+      background: rgba(255,255,255,0.06);
+      transition: all var(--transition);
+      cursor: default;
+    }
+    .stack-chip:hover {
+      background: rgba(255,255,255,0.12);
+      border-color: rgba(255,255,255,0.3);
+      color: var(--white);
+      transform: translateY(-1px);
+    }
+
+    .hero-cta {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      gap: 14px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 32px;
+      border-radius: 999px;
+      background: var(--white);
+      color: var(--text-dark);
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-decoration: none;
+      border: none;
+      cursor: pointer;
+      transition: all var(--transition);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px rgba(0,0,0,0.4);
+      background: #f0f0f0;
+    }
+
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 32px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.85);
+      font-size: 0.9rem;
+      font-weight: 500;
+      text-decoration: none;
+      border: 1px solid rgba(255,255,255,0.2);
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+    .btn-secondary:hover {
+      background: rgba(255,255,255,0.15);
+      border-color: rgba(255,255,255,0.35);
+      color: var(--white);
+      transform: translateY(-2px);
+    }
+
+    /* 히어로 하단 스크롤 힌트 */
+    .scroll-hint {
+      position: absolute;
+      bottom: 36px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      color: rgba(255,255,255,0.35);
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+    }
+    .scroll-hint-arrow {
+      width: 20px;
+      height: 20px;
+      border-right: 1.5px solid rgba(255,255,255,0.3);
+      border-bottom: 1.5px solid rgba(255,255,255,0.3);
+      transform: rotate(45deg);
+      animation: scrollBounce 2s ease-in-out infinite;
+    }
+    @keyframes scrollBounce {
+      0%, 100% { transform: rotate(45deg) translateY(0); opacity: 0.4; }
+      50%       { transform: rotate(45deg) translateY(6px); opacity: 1; }
+    }
+
+    /* ────────────────── STATS BAR ────────────────── */
+    #stats-bar {
+      background: var(--off-white);
+      border-bottom: 1px solid var(--light-gray);
+      padding: 32px 40px;
+      display: flex;
+      justify-content: center;
+      gap: 0;
+      flex-wrap: wrap;
+    }
+
+    .stat-item {
+      flex: 1;
+      min-width: 140px;
+      max-width: 220px;
+      text-align: center;
+      padding: 8px 24px;
+      border-right: 1px solid var(--light-gray);
+    }
+    .stat-item:last-child { border-right: none; }
+
+    .stat-num {
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--text-dark);
+      letter-spacing: -0.04em;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    .stat-label {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    /* ────────────────── LAYOUT ────────────────── */
+    #layout {
+      display: flex;
+      max-width: 1360px;
+      margin: 0 auto;
+      padding: 64px 40px 80px;
+      gap: 56px;
+      align-items: flex-start;
+    }
+
+    /* ────────────────── SIDEBAR ────────────────── */
+    #sidebar {
+      width: var(--sidebar-w);
+      flex-shrink: 0;
+      position: sticky;
+      top: calc(var(--nav-h) + 24px);
+      max-height: calc(100vh - var(--nav-h) - 48px);
+      overflow-y: auto;
+    }
+    #sidebar::-webkit-scrollbar { width: 3px; }
+    #sidebar::-webkit-scrollbar-track { background: transparent; }
+    #sidebar::-webkit-scrollbar-thumb { background: var(--light-gray); border-radius: 4px; }
+
+    .sidebar-label {
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--text-light);
+      margin-bottom: 12px;
+      padding-left: 4px;
+    }
+
+    .toc-list { list-style: none; }
+
+    .toc-item a {
+      display: block;
+      padding: 7px 12px;
+      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.83rem;
+      font-weight: 500;
+      transition: all 0.2s;
+      border-left: 2px solid transparent;
+      line-height: 1.35;
+    }
+    .toc-item a:hover { color: var(--text-dark); background: var(--off-white); }
+    .toc-item a.active {
+      color: var(--accent);
+      background: var(--accent-light);
+      border-left-color: var(--accent);
+      font-weight: 600;
+    }
+
+    /* ────────────────── CONTENT ────────────────── */
+    #content { flex: 1; min-width: 0; }
+
+    /* 섹션 카드 */
+    .section-card {
+      background: var(--white);
+      border: 1px solid var(--light-gray);
+      border-radius: var(--radius-lg);
+      padding: 40px 44px;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow-sm);
+      transition: box-shadow var(--transition), border-color var(--transition);
+      animation: fadeUp 0.5s ease both;
+    }
+    .section-card:hover {
+      box-shadow: var(--shadow-md);
+      border-color: var(--mid-gray);
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── h1 숨김 (히어로에서 표시) ── */
+    #content h1 { display: none; }
+
+    /* ── h2 섹션 제목 ── */
+    #content h2 {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: var(--text-dark);
+      letter-spacing: -0.03em;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--light-gray);
+      line-height: 1.2;
+    }
+
+    /* ── h3 ── */
+    #content h3 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text-dark);
+      margin: 28px 0 10px;
+      letter-spacing: -0.01em;
+    }
+
+    /* ── h4 ── */
+    #content h4 {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--accent);
+      margin: 20px 0 8px;
+    }
+
+    /* ── 본문 ── */
+    #content p {
+      font-size: 0.96rem;
+      color: var(--text-body);
+      margin-bottom: 14px;
+      line-height: 1.75;
+    }
+
+    #content strong { color: var(--text-dark); font-weight: 700; }
+
+    #content a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 500;
+      transition: opacity 0.2s;
+    }
+    #content a:hover { opacity: 0.75; text-decoration: underline; }
+
+    #content ul, #content ol {
+      padding-left: 22px;
+      margin-bottom: 14px;
+    }
+    #content li {
+      font-size: 0.96rem;
+      color: var(--text-body);
+      margin-bottom: 6px;
+      line-height: 1.65;
+    }
+
+    /* ── blockquote ── */
+    #content blockquote {
+      border-left: 3px solid var(--accent);
+      padding: 12px 18px;
+      background: var(--accent-light);
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      margin: 18px 0;
+      color: var(--accent-dark);
+      font-size: 0.9rem;
+    }
+    #content blockquote strong { color: var(--accent-dark); }
+
+    #content hr {
+      border: none;
+      border-top: 1px solid var(--light-gray);
+      margin: 28px 0;
+    }
+
+    /* ── 인라인 코드 ── */
+    #content code:not(pre code) {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8em;
+      color: var(--accent-dark);
+      background: var(--accent-light);
+      padding: 2px 7px;
+      border-radius: 5px;
+      font-weight: 500;
+    }
+
+    /* ── 코드 블록 ── */
+    #content pre {
+      position: relative;
+      background: #fafafa;
+      border: 1px solid var(--light-gray);
+      border-radius: var(--radius-md);
+      padding: 22px 24px;
+      margin: 16px 0;
+      overflow-x: auto;
+    }
+    #content pre code {
+      font-family: 'JetBrains Mono', monospace !important;
+      font-size: 0.82rem !important;
+      line-height: 1.7 !important;
+      background: transparent !important;
+      border: none !important;
+      padding: 0 !important;
+      color: var(--text-body) !important;
+    }
+
+    /* 코드 블록 헤더 */
+    #content pre::before {
+      content: '';
+      display: block;
+      margin-bottom: 14px;
+      height: 10px;
+      background:
+        radial-gradient(circle, #ff5f57 0%, #ff5f57 50%, transparent 50%) 0 0 / 10px 10px no-repeat,
+        radial-gradient(circle, #febc2e 0%, #febc2e 50%, transparent 50%) 16px 0 / 10px 10px no-repeat,
+        radial-gradient(circle, #28c840 0%, #28c840 50%, transparent 50%) 32px 0 / 10px 10px no-repeat;
+    }
+
+    /* 복사 버튼 */
+    .copy-btn {
+      position: absolute;
+      top: 14px; right: 14px;
+      padding: 5px 12px;
+      border-radius: 6px;
+      background: var(--white);
+      border: 1px solid var(--light-gray);
+      color: var(--text-muted);
+      font-size: 0.72rem;
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: var(--shadow-sm);
+    }
+    .copy-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+    .copy-btn.copied { border-color: var(--success); color: var(--success); background: #e8faf0; }
+
+    /* ── 테이블 ── */
+    #content table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      margin: 18px 0;
+      font-size: 0.88rem;
+      border: 1px solid var(--light-gray);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+    }
+    #content thead tr { background: var(--off-white); }
+    #content th {
+      padding: 13px 18px;
+      text-align: left;
+      font-weight: 700;
+      font-size: 0.8rem;
+      color: var(--text-dark);
+      border-bottom: 1px solid var(--light-gray);
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+    }
+    #content td {
+      padding: 12px 18px;
+      border-bottom: 1px solid rgba(0,0,0,0.04);
+      color: var(--text-body);
+      vertical-align: top;
+    }
+    #content tbody tr:hover { background: #fafbfc; }
+    #content tbody tr:last-child td { border-bottom: none; }
+
+    /* ── details/summary ── */
+    #content details {
+      background: var(--off-white);
+      border: 1px solid var(--light-gray);
+      border-radius: var(--radius-md);
+      margin: 16px 0;
+      overflow: hidden;
+    }
+    #content summary {
+      padding: 14px 20px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.88rem;
+      color: var(--text-dark);
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      user-select: none;
+      transition: background 0.2s;
+    }
+    #content summary:hover { background: var(--light-gray); }
+    #content summary::before { content: '▶'; font-size: 0.65em; color: var(--accent); transition: transform 0.2s; }
+    #content details[open] summary::before { transform: rotate(90deg); }
+    #content details > *:not(summary) { padding: 0 20px 20px; }
+
+    /* ── Mermaid ── */
+    .mermaid-wrap {
+      background: var(--off-white);
+      border: 1px solid var(--light-gray);
+      border-radius: var(--radius-md);
+      padding: 28px;
+      margin: 18px 0;
+      overflow-x: auto;
+      display: flex;
+      justify-content: center;
+      box-shadow: var(--shadow-sm);
+    }
+    .mermaid-wrap svg { min-width: 960px; max-width: 100%; height: auto; }
+
+    /* ────────────────── BACK TO TOP ────────────────── */
+    #back-to-top {
+      position: fixed;
+      bottom: 32px; right: 32px;
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      background: var(--text-dark);
+      border: none;
+      color: var(--white);
+      font-size: 1rem;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: var(--shadow-lg);
+      transition: transform 0.2s, box-shadow 0.2s, opacity 0.3s;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 999;
+    }
+    #back-to-top.visible { opacity: 1; pointer-events: auto; }
+    #back-to-top:hover { transform: translateY(-3px); box-shadow: var(--shadow-xl); }
+
+    /* ────────────────── FOOTER ────────────────── */
+    #footer {
+      background: var(--text-dark);
+      color: rgba(255,255,255,0.5);
+      text-align: center;
+      padding: 48px 20px;
+      font-size: 0.82rem;
+    }
+    #footer .footer-logo {
+      font-size: 1.4rem;
+      font-weight: 900;
+      color: var(--white);
+      letter-spacing: -0.04em;
+      margin-bottom: 12px;
+    }
+    #footer .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      margin: 16px 0;
+      flex-wrap: wrap;
+    }
+    #footer .footer-links a {
+      color: rgba(255,255,255,0.5);
+      text-decoration: none;
+      transition: color 0.2s;
+      font-size: 0.8rem;
+    }
+    #footer .footer-links a:hover { color: var(--white); }
+
+    /* ────────────────── RESPONSIVE ────────────────── */
+    @media (max-width: 960px) {
+      #layout { flex-direction: column; padding: 32px 20px 60px; gap: 0; }
+      #sidebar { width: 100%; position: static; max-height: none; margin-bottom: 28px; }
+      .section-card { padding: 28px 22px; }
+      #hero { padding: 60px 24px; min-height: 80vh; }
+      #topnav { padding: 0 20px; }
+      #stats-bar { padding: 24px 20px; }
+      .stat-item { padding: 8px 16px; }
+    }
+    @media (max-width: 600px) {
+      .hero-title { font-size: 2.8rem; }
+      .hero-cta { flex-direction: column; align-items: center; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- 스크롤 진행 바 -->
+<div id="progress-bar"></div>
+
+<!-- ──────────────── TOP NAV ──────────────── -->
+<header id="topnav">
+  <a class="nav-logo" href="#hero">
+    <span class="nav-logo-icon">🚗</span>
+    FreeCar
+  </a>
+  <div class="nav-divider"></div>
+  <span class="nav-subtitle">자동차 구독 이용권 플랫폼</span>
+  <div class="nav-spacer"></div>
+  <span class="nav-badge">v1.0 · 2026</span>
+</header>
+
+<!-- ──────────────── HERO ──────────────── -->
+<section id="hero">
+  <p class="hero-eyebrow">자동차 구독 이커머스</p>
+  <h1 class="hero-title">
+    Drive on<br><span class="accent-word">Demand.</span>
+  </h1>
+  <p class="hero-desc">
+    원하는 차량을 골라, 결제하면 끝.<br>
+    보험 자동 가입 · 집 앞 배달 · 만료 시 자동 회수까지<br>모든 과정이 온라인에서 완결됩니다.
+  </p>
+
+  <div class="hero-stack">
+    <span class="stack-chip">Vue 3 + Vite</span>
+    <span class="stack-chip">Kotlin / Spring Boot</span>
+    <span class="stack-chip">Spring Batch</span>
+    <span class="stack-chip">Apache Kafka</span>
+    <span class="stack-chip">Kubernetes</span>
+    <span class="stack-chip">Docker</span>
+    <span class="stack-chip">Redis · MySQL · ES</span>
+    <span class="stack-chip">토스페이먼츠</span>
+  </div>
+
+  <div class="hero-cta">
+    <a class="btn-primary" href="#프로젝트-소개">📖 프로젝트 소개</a>
+    <a class="btn-secondary" href="#기술-스택">🛠 기술 스택 보기</a>
+  </div>
+
+  <div class="scroll-hint">
+    <div class="scroll-hint-arrow"></div>
+  </div>
+</section>
+
+<!-- ──────────────── STATS BAR ──────────────── -->
+<div id="stats-bar">
+  <div class="stat-item">
+    <div class="stat-num">5종</div>
+    <div class="stat-label">차량 카테고리</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-num">7일~12개월</div>
+    <div class="stat-label">유연한 구독 기간</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-num">99.9%</div>
+    <div class="stat-label">목표 가용성 SLA</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-num">16개</div>
+    <div class="stat-label">핵심 실무 API</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-num">9개</div>
+    <div class="stat-label">Kafka 토픽</div>
+  </div>
+</div>
+
+<!-- ──────────────── MAIN LAYOUT ──────────────── -->
+<div id="layout">
+
+  <!-- 사이드바 -->
+  <nav id="sidebar">
+    <p class="sidebar-label">목차</p>
+    <ul class="toc-list" id="toc"></ul>
+  </nav>
+
+  <!-- 마크다운 콘텐츠 -->
+  <main id="content"></main>
+</div>
+
+<!-- ──────────────── FOOTER ──────────────── -->
+<footer id="footer">
+  <div class="footer-logo">FreeCar</div>
+  <div class="footer-links">
+    <a href="#프로젝트-소개">프로젝트 소개</a>
+    <a href="#기술-스택">기술 스택</a>
+    <a href="#시스템-아키텍처">시스템 아키텍처</a>
+    <a href="#api-명세">API 명세</a>
+    <a href="#실행-방법">실행 방법</a>
+    <a href="./docs/01_사업_서비스_기획서.md">산출물 문서</a>
+  </div>
+  <p>© 2026 FreeCar. All rights reserved.</p>
+  <p style="margin-top:6px; font-size:0.75rem; opacity:0.45;">자동차 구독 이용권 이커머스 플랫폼 프로젝트 문서</p>
+</footer>
+
+<!-- 맨 위로 -->
+<button id="back-to-top" title="맨 위로" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+
+<!-- ──────────────── 마크다운 원문 ──────────────── -->
+<script id="readme-source" type="text/markdown">
 # 🚗 프리카 (FreeCar)
 
 > **자동차 구독 이용권 이커머스 플랫폼**  
 > Vue 3 · Kotlin/Spring Boot · Spring Batch · Kafka · Kubernetes · Docker
 
 <br>
-
-## 📌 목차
-
-- [프로젝트 소개](#-프로젝트-소개)
-- [기획 배경](#-기획-배경)
-- [기술 스택](#️-기술-스택)
-- [핵심 기능](#-핵심-기능)
-- [시스템 아키텍처](#️-시스템-아키텍처)
-- [서비스 정책](#-서비스-정책)
-- [기술적 의사결정](#-기술적-의사결정)
-- [프로젝트 구조](#-프로젝트-구조)
-- [데이터베이스 설계](#️-데이터베이스-설계-erd)
-- [API 명세](#-api-명세)
-- [Kafka 이벤트 설계](#-kafka-이벤트-설계)
-- [배포 및 인프라](#-배포-및-인프라)
-- [실행 방법](#-실행-방법)
-- [산출물 문서](#-산출물-문서)
-
-<br>
-
----
 
 ## 📖 프로젝트 소개
 
@@ -1555,3 +2361,149 @@ docker-compose down -v   # 전체 종료 및 볼륨 삭제
 
 This project is for commercial development purposes.  
 © 2026 FreeCar. All rights reserved.
+</script>
+
+<!-- ────────────────── SCRIPT ────────────────── -->
+<script>
+(async function () {
+
+  /* 1. Mermaid 초기화 */
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: 'base',
+    themeVariables: {
+      primaryColor: '#e8f1fd',
+      primaryTextColor: '#1d1d1f',
+      primaryBorderColor: '#0071e3',
+      lineColor: '#6e6e73',
+      secondaryColor: '#f5f5f7',
+      tertiaryColor: '#fff',
+      background: '#f5f5f7',
+      mainBkg: '#e8f1fd',
+      nodeBorder: '#0071e3',
+      clusterBkg: '#f5f5f7',
+      titleColor: '#1d1d1f',
+      edgeLabelBackground: '#fff',
+      fontFamily: 'Inter, -apple-system, sans-serif',
+      fontSize: '14px',
+    },
+  });
+
+  /* 2. marked 설정 */
+  marked.setOptions({ gfm: true, breaks: true });
+
+  /* 3. 원문 가져오기 */
+  const raw = document.getElementById('readme-source').textContent;
+
+  /* 4. mermaid 블록 추출 */
+  const mermaidBlocks = [];
+  const processed = raw.replace(/```mermaid\n([\s\S]*?)```/g, (_, code) => {
+    const idx = mermaidBlocks.length;
+    mermaidBlocks.push(code.trim());
+    return `<div class="mermaid-placeholder" data-idx="${idx}"></div>`;
+  });
+
+  /* 5. Markdown → HTML */
+  const html = marked.parse(processed);
+
+  /* 6. h2 기준으로 섹션 카드 래핑 */
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+
+  const content = document.getElementById('content');
+  const sections = [];
+  let card = null;
+
+  Array.from(tmp.childNodes).forEach(node => {
+    if (node.nodeType === Node.ELEMENT_NODE && node.tagName === 'H2') {
+      if (card) content.appendChild(card);
+      card = document.createElement('section');
+      card.className = 'section-card';
+
+      const id = node.textContent
+        .replace(/[^\w가-힣\s]/g, '')
+        .trim()
+        .replace(/\s+/g, '-')
+        .toLowerCase();
+      card.id = id;
+      sections.push({ id, text: node.textContent.trim() });
+      card.appendChild(node.cloneNode(true));
+    } else {
+      if (!card) { card = document.createElement('section'); card.className = 'section-card'; }
+      card.appendChild(node.cloneNode(true));
+    }
+  });
+  if (card) content.appendChild(card);
+
+  /* 7. Mermaid 렌더링 */
+  const phs = content.querySelectorAll('.mermaid-placeholder');
+  for (const ph of phs) {
+    const idx = parseInt(ph.dataset.idx);
+    const wrap = document.createElement('div');
+    wrap.className = 'mermaid-wrap';
+    try {
+      const { svg } = await mermaid.render(`m${idx}-${Date.now()}`, mermaidBlocks[idx]);
+      wrap.innerHTML = svg;
+    } catch (e) {
+      wrap.innerHTML = `<pre style="color:#ff3b30;font-size:0.8rem">[다이어그램 렌더링 실패] ${e.message}</pre>`;
+    }
+    ph.replaceWith(wrap);
+  }
+
+  /* 8. 코드 하이라이트 + 복사 버튼 */
+  content.querySelectorAll('pre').forEach(pre => {
+    const code = pre.querySelector('code');
+    if (code) hljs.highlightElement(code);
+    const btn = document.createElement('button');
+    btn.className = 'copy-btn';
+    btn.textContent = '복사';
+    btn.addEventListener('click', () => {
+      navigator.clipboard.writeText(code ? code.innerText : pre.innerText).then(() => {
+        btn.textContent = '✓ 완료';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = '복사'; btn.classList.remove('copied'); }, 1800);
+      });
+    });
+    pre.appendChild(btn);
+  });
+
+  /* 9. 사이드바 목차 */
+  const toc = document.getElementById('toc');
+  sections.forEach(({ id, text }) => {
+    const li = document.createElement('li');
+    li.className = 'toc-item';
+    const a = document.createElement('a');
+    a.href = `#${id}`;
+    a.textContent = text;
+    li.appendChild(a);
+    toc.appendChild(li);
+  });
+
+  /* 10. 스크롤 이벤트 */
+  const bar = document.getElementById('progress-bar');
+  const btn = document.getElementById('back-to-top');
+  const tocLinks = toc.querySelectorAll('a');
+  const sectionEls = Array.from(content.querySelectorAll('section.section-card[id]'));
+
+  window.addEventListener('scroll', () => {
+    const pct = Math.min(100, (window.scrollY / (document.documentElement.scrollHeight - innerHeight)) * 100);
+    bar.style.width = `${pct}%`;
+    btn.classList.toggle('visible', window.scrollY > 400);
+
+    let active = sectionEls[0];
+    sectionEls.forEach(el => { if (el.getBoundingClientRect().top <= 100) active = el; });
+    tocLinks.forEach(a => a.classList.toggle('active', a.getAttribute('href') === `#${active?.id}`));
+  }, { passive: true });
+
+  /* 11. Intersection Observer 애니메이션 지연 */
+  const io = new IntersectionObserver(entries => {
+    entries.forEach((e, i) => {
+      if (e.isIntersecting) e.target.style.animationDelay = `${i * 0.05}s`;
+    });
+  }, { threshold: 0.05 });
+  content.querySelectorAll('.section-card').forEach(el => io.observe(el));
+
+})();
+</script>
+</body>
+</html>
